@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", requestCategories);
 
 function requestCategories() {
-  fetch("http://http://localhost/ecommerce/user/backend/menu.php")
+  fetch("http://localhost/ecommerce/user/backend/menu.php")
     .then(res => {
       if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
       return res.json();
