@@ -438,3 +438,239 @@ footer {
     padding: 6px 10px;
   }
 }
+
+
+/* Modern Banner Styles */
+.banner {
+  width: 100%;
+  margin: 20px 0;
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.swiper {
+  width: 100%;
+  height: 500px;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+}
+
+.swiper-slide {
+  position: relative;
+  display: flex;
+  align-items: center;
+  transition: transform 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.banner-image {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  transform: scale(1.05);
+  transition: transform 8s cubic-bezier(0.16, 0.46, 0.33, 0.96);
+}
+
+.swiper-slide-active .banner-image {
+  transform: scale(1);
+}
+
+.slide-content {
+  position: relative;
+  z-index: 2;
+  max-width: 600px;
+  padding: 40px;
+  background: rgba(15, 23, 42, 0.85);
+  margin-left: 10%;
+  border-radius: 16px;
+  color: white;
+  backdrop-filter: blur(8px);
+  transform: translateX(-20px);
+  opacity: 0;
+  transition: all 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.swiper-slide-active .slide-content {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.slide-content h2 {
+  font-size: 2.8rem;
+  margin-bottom: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  background: linear-gradient(to right, #fff, #cbd5e1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.slide-content p {
+  font-size: 1.25rem;
+  line-height: 1.7;
+  margin-bottom: 30px;
+  color: #e2e8f0;
+  font-weight: 300;
+}
+
+.slide-content .btn {
+  display: inline-block;
+  padding: 14px 32px;
+  background: linear-gradient(to right, #4f46e5, #7c3aed);
+  color: white;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+  border: none;
+  cursor: pointer;
+}
+
+.slide-content .btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 7px 20px rgba(79, 70, 229, 0.4);
+}
+
+.swiper-pagination {
+  bottom: 30px !important;
+}
+
+.swiper-pagination-bullet {
+  width: 12px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 1;
+  transition: all 0.3s ease;
+}
+
+.swiper-pagination-bullet-active {
+  width: 30px;
+  background: white;
+  border-radius: 8px;
+}
+
+.swiper-button-next, 
+.swiper-button-prev {
+  color: white;
+  background: rgba(15, 23, 42, 0.7);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.swiper-button-next::after, 
+.swiper-button-prev::after {
+  font-size: 1.8rem;
+  font-weight: bold;
+}
+
+.swiper-button-next:hover, 
+.swiper-button-prev:hover {
+  background: rgba(79, 70, 229, 0.8);
+  transform: scale(1.1);
+}
+
+/* Gradient overlay for better text contrast */
+.swiper-slide::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 100%);
+  z-index: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .swiper {
+    height: 450px;
+  }
+  
+  .slide-content {
+    max-width: 500px;
+    padding: 30px;
+  }
+  
+  .slide-content h2 {
+    font-size: 2.4rem;
+  }
+  
+  .slide-content p {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .swiper {
+    height: 400px;
+  }
+  
+  .slide-content {
+    max-width: 80%;
+    padding: 25px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  
+  .slide-content h2 {
+    font-size: 2rem;
+  }
+  
+  .swiper-button-next, 
+  .swiper-button-prev {
+    width: 50px;
+    height: 50px;
+  }
+}
+
+@media (max-width: 480px) {
+  .swiper {
+    height: 350px;
+  }
+  
+  .slide-content {
+    max-width: 90%;
+    padding: 20px;
+  }
+  
+  .slide-content h2 {
+    font-size: 1.6rem;
+  }
+  
+  .slide-content p {
+    font-size: 1rem;
+    margin-bottom: 20px;
+  }
+  
+  .slide-content .btn {
+    padding: 12px 24px;
+    font-size: 1rem;
+  }
+  
+  .swiper-pagination {
+    bottom: 20px !important;
+  }
+}
+
+/* Floating animation for slider elements */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.slide-content .btn {
+  animation: float 4s ease-in-out infinite;
+}

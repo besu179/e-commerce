@@ -18,7 +18,15 @@ $tables = [
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         status BOOLEAN DEFAULT 1
-    )"
+    )",
+
+    "CREATE TABLE IF NOT EXISTS banner (
+        id INT AUTO_INCREMENT PRIMARY KEY, 
+        name VARCHAR(255) NOT NULL , 
+        description VARCHAR(255) NOT NULL,
+        image VARCHAR(255) NOT NULL,
+        status TINYINT NOT NULL DEFAULT 0
+        )"
 ];
 
 foreach ($tables as $sql) {
@@ -26,4 +34,3 @@ foreach ($tables as $sql) {
         error_log("Table creation failed: " . $conn->error);
     }
 }
-?>
