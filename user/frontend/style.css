@@ -484,15 +484,19 @@ footer {
   z-index: 2;
   max-width: 600px;
   padding: 40px;
-  background: rgba(15, 23, 42, 0.85);
-  margin-left: 10%;
+  background: rgba(15, 23, 42, 0.65); /* more transparent */
+  backdrop-filter: blur(12px); /* stronger blur for glass effect */
+  -webkit-backdrop-filter: blur(12px); /* Safari support */
   border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1); /* soft border */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);  /* more depth */
   color: white;
-  backdrop-filter: blur(8px);
+  margin-left: 10%;
   transform: translateX(-20px);
   opacity: 0;
-  transition: all 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition: all 0.9s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
+
 
 .swiper-slide-active .slide-content {
   transform: translateX(0);
