@@ -1,26 +1,32 @@
 <?php
 require_once 'db.php';
 
-header("Access-Control-Allow-Origin: *");  // WARNING: Use with caution! See below.
+// For development only
+header("Access-Control-Allow-Origin: *");
 header('Content-Type: application/json');
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $stmt = $conn->prepare("SELECT name FROM category WHERE status = 1"); // Prepared statement
+    $stmt = $conn->prepare("SELECT name FROM category WHERE status = 1");
+    
     if ($stmt) {
         $stmt->execute();
-        $result = $stmt->get_result();  // Get the result set
+        $result = $stmt->get_result();
+        $categories = [];
 
-        $arr = array();
-        while ($row = $result->fetch_assoc()) {  // Fetch the row
-            array_push($arr, $row['name']);  // Access the 'name' column of the fetched row
+        while ($row = $result->fetch_assoc()) {
+            $categories[] = $row['name'];
         }
 
-        $stmt->close(); // Close the statement
-        echo json_encode(['categories' => $arr]);
+        $stmt->close();
+        echo json_encode(['categories' => $categories]);
     } else {
-        //Handle error with prepare statement
-        echo json_encode(['error' => "Error preparing statement: " . $conn->error]);
+        http_response_code(500);
+        echo json_encode(['error' => "Database error: " . $conn->error]);
     }
-
-    exit();
+} else {
+    http_response_code(405);
+    echo json_encode(['error' => 'Method not allowed']);
 }
+
 $conn->close();
+?>
