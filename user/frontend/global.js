@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", requestCategories);
 document.addEventListener("DOMContentLoaded", requestBanners);
+document.addEventListener("DOMContentLoaded", requestFeatured);
 
 function requestCategories() {
   // Use correct relative path
@@ -17,7 +18,7 @@ function requestCategories() {
           // Create proper navigation links
           navHTML += `
             <li class="menu-item">
-              <a href="/category/${cat.toLowerCase()}" class="nav-link">
+              <a href="http://localhost/ecommerce/user/backend/${cat.toLowerCase()}.php" class="nav-link">
                 ${cat}
               </a>
             </li>`;
@@ -103,5 +104,83 @@ function requestBanners() {
       
       const bannerSection = document.querySelector('.banner');
       bannerSection.innerHTML = '<div class="error">Banner loading failed: ' + err.message + '</div>';
+    });
+}
+
+function requestFeatured() {
+  fetch("http://localhost/ecommerce/user/backend/featured.php")
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+      return res.json();
+    })
+    .then(data => {
+      const featuredSection = document.querySelector('.featured-products');
+      
+      if (data.featured && data.featured.length > 0) {
+        featuredSection.innerHTML = `
+          <div class="section-header">
+            <h2 class="section-title">Premium Collection</h2>
+            <p class="section-subtitle">Handpicked luxury items for the discerning shopper</p>
+          </div>
+          <div class="featured-grid">
+            ${data.featured.map(product => `
+              <div class="product-card">
+                <div class="product-badge">Premium</div>
+                <div class="product-image-container">
+                  <img src="${product.image}" alt="${product.name}" class="featured-image">
+                  <div class="product-actions">
+                    <button class="quick-view"><i class="fas fa-eye"></i></button>
+                    <button class="add-to-wishlist"><i class="fas fa-heart"></i></button>
+                  </div>
+                </div>
+                <div class="product-info">
+                  <h3 class="product-title">${product.name}</h3>
+                  <p class="product-description">${product.description.substring(0, 80)}...</p>
+                  <div class="product-meta">
+                    <div class="product-price">$${product.price}</div>
+                    <div class="product-rating">
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star-half-alt"></i>
+                      <span class="rating-count">(42)</span>
+                    </div>
+                  </div>
+                  <button class="add-to-cart">Add to Cart</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        featuredSection.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-gem"></i>
+            <h3>No Premium Products Available</h3>
+            <p>Check back soon for our luxury collection</p>
+          </div>
+        `;
+      }
+      
+      // Initialize tooltips
+      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.map(tooltipTriggerEl => {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+    })
+    .catch(err => {
+      console.error("Fetch failed:", err);
+      document.querySelector('.featured-products').innerHTML = `
+        <div class="error-state">
+          <i class="fas fa-exclamation-triangle"></i>
+          <h3>Failed to Load Products</h3>
+          <p>${err.message}</p>
+          <button class="retry-btn">Try Again</button>
+        </div>
+      `;
+      
+      // Add retry functionality
+      document.querySelector('.retry-btn').addEventListener('click', requestFeatured);
     });
 }
