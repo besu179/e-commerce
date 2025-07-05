@@ -8,7 +8,7 @@ function fetch_category_products($category_id, $response_key) {
     global $conn;
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $stmt = $conn->prepare("
-            SELECT id, name, description, price, image 
+            SELECT id, name, description, price, image, stock
             FROM products 
             WHERE category_id = ? AND status = 1
             ORDER BY RAND() 

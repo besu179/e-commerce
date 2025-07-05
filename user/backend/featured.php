@@ -9,7 +9,7 @@ header('Content-Type: application/json');
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Fetch products with price > 100
     $stmt = $conn->prepare("
-        SELECT id, name, description, price, image 
+        SELECT id, name, description, price, image, stock
         FROM products 
         WHERE price > 100 AND status = 1
         ORDER BY RAND() 

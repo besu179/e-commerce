@@ -12,7 +12,7 @@ function fetch_random_items($limit = 8) {
     global $conn;
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $stmt = $conn->prepare("
-            SELECT id, name, description, price, image
+            SELECT id, name, description, price, image, stock
             FROM products
             WHERE status = 1
             ORDER BY RAND()
