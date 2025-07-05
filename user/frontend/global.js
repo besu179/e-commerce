@@ -2,20 +2,23 @@ document.addEventListener("DOMContentLoaded", requestCategories);
 document.addEventListener("DOMContentLoaded", requestBanners);
 document.addEventListener("DOMContentLoaded", requestFeatured);
 
-function requestCategories() {
-  // Use correct relative path
-  fetch("http://localhost/ecommerce/user/backend/menu.php")
+
+// Generic fetch helper
+function fetchJSON(url) {
+  return fetch(url)
     .then(res => {
       if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
       return res.json();
-    })
+    });
+}
+
+function requestCategories() {
+  fetchJSON("http://localhost/ecommerce/user/backend/menu.php")
     .then(data => {
       const navContainer = document.querySelector('.navigation');
-      
       if (data.categories && data.categories.length > 0) {
         let navHTML = '<ul class="menu">';
         data.categories.forEach(cat => {
-          // Create proper navigation links
           navHTML += `
             <li class="menu-item">
               <a href="http://localhost/ecommerce/user/backend/${cat.toLowerCase()}.php" class="nav-link">
@@ -36,30 +39,15 @@ function requestCategories() {
     });
 }
 
+
 function requestBanners() {
-  
-  fetch("http://localhost/ecommerce/user/backend/banners.php")
-    .then(res => {
-      
-      if (!res.ok) {
-        console.error("HTTP error detected. Full response:", res);
-        throw new Error(`HTTP error! Status: ${res.status}`);
-      }
-      
-      return res.json();
-    })
+  fetchJSON("http://localhost/ecommerce/user/backend/banners.php")
     .then(data => {
-      
       const swiperWrapper = document.querySelector('.swiper-wrapper');
       const bannerSection = document.querySelector('.banner');
-      
       if (data.banners && data.banners.length > 0) {
-        
         swiperWrapper.innerHTML = '';
-        
-        // Create slides for each banner
         data.banners.forEach((banner) => {
-          
           const slide = document.createElement('div');
           slide.className = 'swiper-slide';
           slide.innerHTML = `
@@ -69,10 +57,8 @@ function requestBanners() {
             </div>
             <img src="${banner.image}" alt="${banner.name}" class="banner-image">
           `;
-          
           swiperWrapper.appendChild(slide);
         });
-        
         // Initialize Swiper after content is loaded
         const swiper = new Swiper('.swiper', {
           direction: 'horizontal',
@@ -90,7 +76,6 @@ function requestBanners() {
             prevEl: '.swiper-button-prev',
           },
         });
-        
         console.log("Swiper initialized with banners");
       } else {
         console.warn("No banners found in response");
@@ -101,21 +86,16 @@ function requestBanners() {
       console.error("Fetch failed:", err);
       console.error("Error name:", err.name);
       console.error("Error message:", err.message);
-      
       const bannerSection = document.querySelector('.banner');
       bannerSection.innerHTML = '<div class="error">Banner loading failed: ' + err.message + '</div>';
     });
 }
 
+
 function requestFeatured() {
-  fetch("http://localhost/ecommerce/user/backend/featured.php")
-    .then(res => {
-      if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-      return res.json();
-    })
+  fetchJSON("http://localhost/ecommerce/user/backend/featured.php")
     .then(data => {
       const featuredSection = document.querySelector('.featured-products');
-      
       if (data.featured && data.featured.length > 0) {
         featuredSection.innerHTML = `
           <div class="section-header">
@@ -162,7 +142,6 @@ function requestFeatured() {
           </div>
         `;
       }
-      
       // Initialize tooltips
       const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
       tooltipTriggerList.map(tooltipTriggerEl => {
@@ -179,7 +158,6 @@ function requestFeatured() {
           <button class="retry-btn">Try Again</button>
         </div>
       `;
-      
       // Add retry functionality
       document.querySelector('.retry-btn').addEventListener('click', requestFeatured);
     });
