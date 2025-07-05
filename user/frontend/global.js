@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", requestCategories);
 document.addEventListener("DOMContentLoaded", requestBanners);
 document.addEventListener("DOMContentLoaded", requestFeatured);
+document.addEventListener("DOMContentLoaded", requestNewArrivals);
 
 // Generic fetch helper
 function fetchJSON(url) {
@@ -262,5 +263,29 @@ function requestFeatured() {
       console.error("Fetch failed:", err);
       const featuredSection = document.getElementById('items-section');
       showErrorState(featuredSection, err, requestFeatured);
+    });
+}
+function requestNewArrivals() {
+  fetchJSON("http://localhost/ecommerce/user/backend/random.php")
+    .then(data => {
+      const section = document.querySelector('.new-arrivals');
+      renderProducts(data.random, {
+        sectionElement: section,
+        badgeText: "New",
+        sectionHeader: {
+          title: "New Arrivals",
+          subtitle: "Discover the latest additions to our store"
+        },
+        emptyState: {
+          icon: 'fas fa-box-open',
+          title: 'No New Arrivals',
+          message: 'Check back soon for new products!'
+        }
+      });
+    })
+    .catch(err => {
+      console.error("Fetch failed:", err);
+      const section = document.querySelector('.new-arrivals');
+      showErrorState(section, err, requestNewArrivals);
     });
 }
