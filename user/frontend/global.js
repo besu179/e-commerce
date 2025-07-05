@@ -71,10 +71,10 @@ function showProductDetails(product) {
   overlay.querySelector(".close-btn").addEventListener("click", hideOverlay);
   overlay.querySelector(".add-to-cart-btn").addEventListener("click", () => {
     if (product.stock > 0) {
-      alert(`${product.name} added to cart!`);
+      showNotification(`${product.name} added to cart!`, "success");
       hideOverlay();
     } else {
-      alert("This product is out of stock");
+      showNotification("This product is out of stock", "error");
     }
   });
 

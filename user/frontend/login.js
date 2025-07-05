@@ -120,7 +120,7 @@ function setupLoginForm() {
         updateLoginUI();
 
         // Show welcome message
-        alert(`Welcome back, ${user.first_name || user.email || "User"}!`);
+        showNotification(`Welcome back, ${user.first_name || user.email || "User"}!`, "success");
 
         // Close overlay
         hideLoginOverlay();
@@ -130,7 +130,7 @@ function setupLoginForm() {
     } catch (error) {
       // Show error message
       console.error("Login error:", error);
-      alert(`Login failed: ${error.message}`);
+      showNotification(`Login failed: ${error.message}`, "error");
       
       // Clear password field
       document.getElementById("password").value = "";
@@ -193,12 +193,12 @@ function updateLoginUI() {
 // Logout functionality
 if (logout) {
   logout.addEventListener("click", () => {
-    if (confirm("Are you sure you want to log out?")) {
+    showConfirmation("Are you sure you want to log out?", () => {
       loggedIn = false;
       localStorage.removeItem("currentUser");
       updateLoginUI();
-      alert("You have been logged out");
-    }
+      showNotification("You have been logged out", "info");
+    });
   });
 }
 
