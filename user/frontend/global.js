@@ -1,14 +1,86 @@
-document.addEventListener("DOMContentLoaded", () => {
-  requestCategories();
-  requestBanners();
-  requestFeatured();
-  requestNewArrivals();
-  setupEventDelegation();
 
-  const currentUser = localStorage.getItem("currentUser");
-  if (currentUser) {
-    loggedIn = true;
-    updateLoginUI();
+// --- Cart logic ---
+function addToCart(item) {
+  const idx = window.cart.findIndex((p) => p.id === item.id);
+  if (idx > -1) {
+    window.cart[idx].quantity = Number(window.cart[idx].quantity) + Number(item.quantity);
+  } else {
+    window.cart.push(item);
+  }
+  localStorage.setItem("cart", JSON.stringify(window.cart));
+  renderCart();
+}
+
+function renderCart() {
+  const cartDiv = document.querySelector(".cart");
+  if (!cartDiv) return;
+  let summary = cartDiv.querySelector('.cart-summary');
+  if (!summary) {
+    summary = document.createElement('span');
+    summary.className = 'cart-summary';
+    cartDiv.innerHTML = '';
+    cartDiv.appendChild(summary);
+  }
+  const cart = window.cart || [];
+  if (cart.length === 0) {
+    summary.textContent = 'Cart (0)';
+    removeCartDetails();
+    return;
+  }
+  const total = cart.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+  summary.textContent = `Cart (${cart.reduce((sum, item) => sum + Number(item.quantity), 0)}) - $${total.toFixed(2)}`;
+}
+
+function toggleCartDetails() {
+  let details = document.querySelector(".cart-details");
+  if (details) {
+    details.remove();
+    return;
+  }
+  const cart = window.cart || [];
+  details = document.createElement("div");
+  details.className = "cart-details";
+  if (cart.length === 0) {
+    details.innerHTML = '<div class="empty-cart">Cart is empty</div>';
+  } else {
+    let html = '<ul class="cart-list">';
+    cart.forEach(item => {
+      html += `<li>${item.name} x${item.quantity} - $${(Number(item.price) * Number(item.quantity)).toFixed(2)}</li>`;
+    });
+    const total = cart.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+    html += `</ul><div class="cart-total">Total: $${total.toFixed(2)}</div>`;
+    details.innerHTML = html;
+  }
+  // Position below cart icon
+  const cartDiv = document.querySelector(".cart");
+  const rect = cartDiv.getBoundingClientRect();
+  details.style.position = 'absolute';
+  details.style.top = `${rect.bottom + window.scrollY}px`;
+  details.style.left = `${rect.left + window.scrollX}px`;
+  details.style.zIndex = 1000;
+  document.body.appendChild(details);
+}
+
+function removeCartDetails() {
+  const details = document.querySelector(".cart-details");
+  if (details) details.remove();
+}
+
+// --- End cart logic ---
+
+// Initialize all components when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    // Initialize all components
+    requestCategories();
+    requestBanners();
+    requestFeatured();
+    requestNewArrivals();
+    
+    // Setup event delegation for product actions
+    setupEventDelegation();
+  } catch (error) {
+    console.error('Error initializing components:', error);
   }
 });
 
@@ -27,6 +99,8 @@ function createProductOverlay() {
           <h2 class="overlay-title"></h2>
           <div class="overlay-price"></div>
           <div class="overlay-stock"></div>
+          <label for="overlay-quantity">Quantity:</label>
+          <select id="overlay-quantity" class="overlay-quantity"></select>
           <p class="overlay-description"></p>
           <div class="overlay-actions">
             <button class="add-to-cart-btn">Add to Cart</button>
@@ -41,7 +115,7 @@ function createProductOverlay() {
 }
 
 // Show product details in overlay
-function showProductDetails(product) {
+async function showProductDetails(product) {
   let overlay = document.querySelector(".product-overlay");
   if (!overlay) {
     overlay = createProductOverlay();
@@ -54,28 +128,78 @@ function showProductDetails(product) {
   // Set stock information
   const stockElement = overlay.querySelector(".overlay-stock");
   const stock = Number(product.stock);
+  const quantitySelect = overlay.querySelector(".overlay-quantity");
+  quantitySelect.innerHTML = "";
   if (!isNaN(stock) && stock > 0) {
     stockElement.textContent = `${stock} left in stock`;
     stockElement.className = "overlay-stock in-stock";
+    // Populate quantity dropdown
+    for (let i = 1; i <= stock; i++) {
+      const option = document.createElement("option");
+      option.value = i;
+      option.textContent = i;
+      quantitySelect.appendChild(option);
+    }
+    quantitySelect.disabled = false;
   } else {
     stockElement.textContent = "Out of stock";
     stockElement.className = "overlay-stock out-of-stock";
+    // Disable quantity dropdown
+    const option = document.createElement("option");
+    option.value = 0;
+    option.textContent = "0";
+    quantitySelect.appendChild(option);
+    quantitySelect.disabled = true;
   }
 
-  overlay.querySelector(".overlay-description").textContent =
-    product.description;
+  overlay.querySelector(".overlay-description").textContent = product.description;
 
-  // Add event listeners
-  overlay
-    .querySelector(".close-overlay")
-    .addEventListener("click", hideOverlay);
+  // Remove previous event listeners by cloning
+  const closeBtn = overlay.querySelector(".close-overlay");
+  const continueBtn = overlay.querySelector(".close-btn");
+  const addToCartBtn = overlay.querySelector(".add-to-cart-btn");
+  closeBtn.replaceWith(closeBtn.cloneNode(true));
+  continueBtn.replaceWith(continueBtn.cloneNode(true));
+  addToCartBtn.replaceWith(addToCartBtn.cloneNode(true));
+
+  overlay.querySelector(".close-overlay").addEventListener("click", hideOverlay);
   overlay.querySelector(".close-btn").addEventListener("click", hideOverlay);
-  overlay.querySelector(".add-to-cart-btn").addEventListener("click", () => {
+
+  overlay.querySelector(".add-to-cart-btn").addEventListener("click", async () => {
     const stock = Number(product.stock);
-    console.log(stock);
-    if (!isNaN(stock) && stock > 0) {
-      showNotification(`${product.name} added to cart!`, "success");
-      hideOverlay();
+    const quantity = Number(quantitySelect.value);
+    if (!isNaN(stock) && stock > 0 && quantity > 0) {
+      // Check login status
+      let user = localStorage.getItem("currentUser");
+      if (!user) {
+        showNotification("Please log in to purchase.", "error");
+        return;
+      }
+      // Call purchase endpoint
+      try {
+        const response = await fetch("http://localhost/ecommerce/user/backend/purchase.php", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ product_id: product.id, quantity })
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+          showNotification(`${product.name} purchased!`, "success");
+          // Add to cart and update UI
+          addToCart({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            quantity: quantity
+          });
+          hideOverlay();
+        } else {
+          showNotification(data.error || "Purchase failed", "error");
+        }
+      } catch (err) {
+        showNotification("Purchase failed: " + err.message, "error");
+      }
     } else {
       showNotification("This product is out of stock", "error");
     }
@@ -100,16 +224,13 @@ function setupEventDelegation() {
       const card = button.closest(".product-card");
       if (card) {
         const product = {
+          id: card.dataset.id,
           name: card.dataset.name,
           image: card.dataset.image,
           description: card.dataset.description,
           price: card.dataset.price,
           stock: card.dataset.stock,
         };
-        console.log(card.dataset.stock);
-        console.log(product);
-        console.log(product.name);
-        console.log(product.price);
         showProductDetails(product);
       }
     }
@@ -154,15 +275,15 @@ function escapeHtml(unsafe) {
 function generateProductCard(product, badgeText = "Premium") {
   return `
     <div class="product-card"
+         data-id="${product.id || ''}"
          data-name="${escapeHtml(product.name)}"
          data-image="${escapeHtml(product.image)}"
          data-description="${escapeHtml(product.description)}"
-         data-price="${escapeHtml(product.price)}">
+         data-price="${escapeHtml(product.price)}"
+         data-stock="${escapeHtml(String(product.stock))}">
       <div class="product-badge">${badgeText}</div>
       <div class="product-image-container">
-        <img src="${product.image}" alt="${
-    product.name
-  }" class="featured-image">
+        <img src="${product.image}" alt="${product.name}" class="featured-image">
         <div class="product-actions">
           <button class="quick-view"><i class="fas fa-eye"></i></button>
           <button class="add-to-wishlist"><i class="fas fa-heart"></i></button>
@@ -170,10 +291,7 @@ function generateProductCard(product, badgeText = "Premium") {
       </div>
       <div class="product-info">
         <h3 class="product-title">${product.name}</h3>
-        <p class="product-description">${product.description.substring(
-          0,
-          80
-        )}...</p>
+        <p class="product-description">${product.description.substring(0, 80)}...</p>
         <div class="product-meta">
           <div class="product-price">$${product.price}</div>
           <div class="product-rating">
@@ -261,12 +379,16 @@ function fetchAndRenderProducts(options) {
 }
 
 function requestCategories() {
+  const navContainer = document.querySelector(".navigation");
+  if (!navContainer) {
+    console.error("Navigation container not found");
+    return;
+  }
+
   fetchJSON("http://localhost/ecommerce/user/backend/menu.php")
     .then((data) => {
-      const navContainer = document.querySelector(".navigation");
-      if (!data.categories?.length) {
-        navContainer.innerHTML =
-          '<div class="error">No categories available</div>';
+      if (!data?.categories?.length) {
+        showErrorState(navContainer, "No categories available", () => requestCategories());
         return;
       }
 
@@ -285,9 +407,9 @@ function requestCategories() {
         </ul>
       `;
 
-      navContainer
-        .querySelectorAll(".nav-link[data-category]")
-        .forEach((link) => {
+      const links = navContainer.querySelectorAll(".nav-link[data-category]");
+      if (links.length > 0) {
+        links.forEach((link) => {
           link.addEventListener("click", function (e) {
             e.preventDefault();
             requestCategoryName(this.dataset.category);
@@ -296,12 +418,11 @@ function requestCategories() {
               ?.scrollIntoView({ behavior: "smooth" });
           });
         });
+      }
     })
     .catch((err) => {
       console.error("Fetch failed:", err);
-      document.querySelector(
-        ".navigation"
-      ).innerHTML = `<div class="error">Menu loading failed: ${err.message}</div>`;
+      showErrorState(navContainer, `Menu loading failed: ${err.message}`, () => requestCategories());
     });
 }
 
@@ -372,14 +493,18 @@ function requestCategoryName(category) {
 }
 
 function requestBanners() {
+  const swiperWrapper = document.querySelector(".swiper-wrapper");
+  const bannerSection = document.querySelector(".banner");
+  
+  if (!swiperWrapper || !bannerSection) {
+    console.error("Banner container elements not found");
+    return;
+  }
+
   fetchJSON("http://localhost/ecommerce/user/backend/banners.php")
     .then((data) => {
-      const swiperWrapper = document.querySelector(".swiper-wrapper");
-      const bannerSection = document.querySelector(".banner");
-
-      if (!data.banners?.length) {
-        bannerSection.innerHTML =
-          '<div class="error">No banners available</div>';
+      if (!data?.banners?.length) {
+        showErrorState(bannerSection, "No banners available", () => requestBanners());
         return;
       }
 
@@ -396,22 +521,25 @@ function requestBanners() {
         )
         .join("");
 
-      new Swiper(".swiper", {
-        direction: "horizontal",
-        loop: true,
-        autoplay: { delay: 5000, disableOnInteraction: false },
-        pagination: { el: ".swiper-pagination", clickable: true },
-        navigation: {
-          nextEl: ".swiper-button-next",
-          prevEl: ".swiper-button-prev",
-        },
-      });
+      try {
+        new Swiper(".swiper", {
+          direction: "horizontal",
+          loop: true,
+          autoplay: { delay: 5000, disableOnInteraction: false },
+          pagination: { el: ".swiper-pagination", clickable: true },
+          navigation: {
+            nextEl: ".swiper-button-next",
+            prevEl: ".swiper-button-prev",
+          },
+        });
+      } catch (swiperError) {
+        console.error("Swiper initialization failed:", swiperError);
+        showErrorState(bannerSection, "Banner slider initialization failed", () => requestBanners());
+      }
     })
     .catch((err) => {
       console.error("Fetch failed:", err);
-      document.querySelector(
-        ".banner"
-      ).innerHTML = `<div class="error">Banner loading failed: ${err.message}</div>`;
+      showErrorState(bannerSection, `Banner loading failed: ${err.message}`, () => requestBanners());
     });
 }
 
