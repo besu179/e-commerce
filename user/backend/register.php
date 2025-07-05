@@ -1,9 +1,14 @@
 <?php
+
+require_once 'session.php';
 require_once 'db.php';
 
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
+
+// CORS for frontend on 127.0.0.1:5500
+header('Access-Control-Allow-Origin: http://127.0.0.1:5500');
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json');
 
 // Handle preflight requests
@@ -44,6 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(['error' => 'Password must be at least 6 characters']);
         exit;
     }
+    // Hash password securely
+    $passwordHash = password_hash($password, PASSWORD_DEFAULT);
     
     try {
         // Check if email already exists
@@ -63,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT INTO users (first_name, last_name, email, password)
             VALUES (?, ?, ?, ?)
         ");
-        $stmt->bind_param('ssss', $firstName, $lastName, $email, $password);
+        $stmt->bind_param('ssss', $firstName, $lastName, $email, $passwordHash);
         $stmt->execute();
         
         if ($stmt->affected_rows > 0) {
