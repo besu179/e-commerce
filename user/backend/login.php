@@ -1,10 +1,15 @@
 <?php
+
+require_once 'session.php';
 require_once 'db.php';
 
 // Enable CORS with proper headers
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
+
+// CORS for frontend on 127.0.0.1:5500
+header('Access-Control-Allow-Origin: http://127.0.0.1:5500');
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json');
 
 // Handle preflight requests
@@ -34,31 +39,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             FROM users 
             WHERE email = ?
         ");
-        
         if (!$stmt) {
             throw new Exception("Database error: " . $conn->error);
         }
-        
         $stmt->bind_param('s', $email);
         $stmt->execute();
         $result = $stmt->get_result();
-        
         if ($result->num_rows === 0) {
             http_response_code(401);
             echo json_encode(['error' => 'Invalid email or password']);
             exit;
         }
-        
         $user = $result->fetch_assoc();
-        // Plain text password check (NOT recommended for production)
-        if ($password !== $user['password']) {
+        // Secure password check
+        if (!password_verify($password, $user['password'])) {
             http_response_code(401);
             echo json_encode(['error' => 'Invalid email or password']);
             exit;
         }
-        // Successful login
+        // Successful login: set session
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['user_email'] = $user['email'];
+        $_SESSION['user_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
         unset($user['password']); // Remove password from response
-        $user['name'] = trim($user['first_name'] . ' ' . $user['last_name']);
+        $user['name'] = $_SESSION['user_name'];
         echo json_encode([
             'success' => true,
             'user' => $user

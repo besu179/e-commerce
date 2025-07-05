@@ -235,7 +235,7 @@ function setupLoginForm() {
 
     // Basic validation
     if (!email || !password) {
-      alert("Please fill in both email and password");
+      showNotification("Please fill in both email and password", "error");
       return;
     }
 
@@ -252,6 +252,7 @@ function setupLoginForm() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
@@ -291,8 +292,7 @@ function setupLoginForm() {
     } catch (error) {
       // Show error message
       console.error("Login error:", error);
-      showNotification(`Login failed: ${error.message}`, "error");
-      
+      showNotification("Login failed: " + error.message, "error");
       // Clear password field
       document.getElementById("password").value = "";
     } finally {
@@ -327,37 +327,47 @@ function showHideElement(element, show) {
 }
 
 // For demo purposes, let's assume we have a loggedIn state
-let loggedIn = false;
+window.loggedIn = false;
 
 // Toggle UI based on login state
-function updateLoginUI() {
-  showHideElement(login, !loggedIn);
-  showHideElement(register, !loggedIn);
-  showHideElement(logout, loggedIn);
-  showHideElement(loggedUser, loggedIn);
+window.updateLoginUI = function() {
+  showHideElement(login, !window.loggedIn);
+  showHideElement(register, !window.loggedIn);
+  showHideElement(logout, window.loggedIn);
+  showHideElement(loggedUser, window.loggedIn);
 
-  if (loggedIn) {
+  if (window.loggedIn) {
     // Get user from localStorage
     const user = JSON.parse(localStorage.getItem("currentUser"));
 
     // Update user display
     if (user && loggedUser) {
-      loggedUser.innerHTML = `
-        <i class="fas fa-user-circle"></i>
-        <span class="username">${user.first_name || user.email || "User"}</span>
-      `;
+      loggedUser.innerHTML = '<i class="fas fa-user-circle"></i> <span class="username">' + (user.first_name || user.email || "User") + '</span>';
     }
   }
 }
 
 // Logout functionality
 if (logout) {
-  logout.addEventListener("click", () => {
-    showConfirmation("Are you sure you want to log out?", () => {
-      loggedIn = false;
-      localStorage.removeItem("currentUser");
-      updateLoginUI();
-      showNotification("You have been logged out", "info");
+  logout.addEventListener("click", async () => {
+    showConfirmation("Are you sure you want to log out?", async () => {
+      // Call backend logout
+      try {
+        const response = await fetch("http://localhost/ecommerce/user/backend/logout.php", {
+          method: "POST",
+          credentials: "include"
+        });
+        if (response.ok) {
+          loggedIn = false;
+          localStorage.removeItem("currentUser");
+          updateLoginUI();
+          showNotification("You have been logged out", "info");
+        } else {
+          showNotification("Logout failed", "error");
+        }
+      } catch (err) {
+        showNotification("Logout failed: " + err.message, "error");
+      }
     });
   });
 }
@@ -375,10 +385,3 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-if (register) {
-  register.addEventListener("click", () => {
-    createRegisterOverlay();
-    // Setup form after overlay is shown
-    setTimeout(setupLoginForm, 50);
-  });
-}
