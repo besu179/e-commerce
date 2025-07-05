@@ -17,10 +17,20 @@ function handleCheckout() {
     return;
   }
 
+  // Validate cart items
+  const invalidItems = cart.filter(item => !item.id || !item.price || !item.quantity || item.quantity <= 0);
+  if (invalidItems.length > 0) {
+    showNotification("Some items in your cart are invalid. Please refresh the page and try again.", "error");
+    return;
+  }
+
   // Prepare purchase data
   const purchaseData = {
     userId: user.id,
-    items: cart,
+    items: cart.map(item => ({
+      productId: item.id,
+      quantity: item.quantity
+    })),
     total: cart.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0)
   };
 
@@ -29,10 +39,16 @@ function handleCheckout() {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
     },
     body: JSON.stringify(purchaseData)
   })
-  .then(response => response.json())
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
   .then(data => {
     if (data.success) {
       // Clear cart after successful purchase
@@ -137,32 +153,104 @@ function renderCart() {
 }
 
 function toggleCartDetails() {
+  const cartDiv = document.querySelector(".cart");
+  if (!cartDiv) return;
+
   let details = document.querySelector(".cart-details");
   if (details) {
     details.remove();
     return;
   }
+
   const cart = window.cart || [];
+  if (cart.length === 0) {
+    showNotification("Your cart is empty", "info");
+    return;
+  }
+
   details = document.createElement("div");
   details.className = "cart-details";
-  if (cart.length === 0) {
-    details.innerHTML = '<div class="empty-cart">Cart is empty</div>';
-  } else {
-    let html = '<ul class="cart-list">';
-    cart.forEach(item => {
-      html += `<li>${item.name} x${item.quantity} - $${(Number(item.price) * Number(item.quantity)).toFixed(2)}</li>`;
-    });
-    const total = cart.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
-    html += `</ul><div class="cart-total">Total: $${total.toFixed(2)}</div>`;
-    details.innerHTML = html;
-  }
+  
+  // Create cart items list
+  let html = '<div class="cart-items">';
+  html += '<ul class="cart-list">';
+  
+  cart.forEach(item => {
+    html += `
+      <li class="cart-item">
+        <img src="${item.image}" alt="${item.name}" class="cart-item-image">
+        <div class="cart-item-details">
+          <h3 class="cart-item-name">${item.name}</h3>
+          <div class="cart-item-info">
+            <span class="cart-item-price">$${item.price}</span>
+            <span class="cart-item-quantity">Quantity: ${item.quantity}</span>
+            <span class="cart-item-subtotal">Subtotal: $${(Number(item.price) * Number(item.quantity)).toFixed(2)}</span>
+          </div>
+          <button class="remove-item" data-id="${item.id}">Remove</button>
+        </div>
+      </li>
+    `;
+  });
+  
+  html += '</ul>';
+  
+  // Calculate totals
+  const totalQuantity = cart.reduce((sum, item) => sum + Number(item.quantity), 0);
+  const totalValue = cart.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+  
+  // Add totals section
+  html += `
+    <div class="cart-totals">
+      <div class="cart-total-row">
+        <span>Total Items:</span>
+        <span>${totalQuantity}</span>
+      </div>
+      <div class="cart-total-row">
+        <span>Subtotal:</span>
+        <span>$${totalValue.toFixed(2)}</span>
+      </div>
+      <div class="cart-total-row">
+        <span>Tax (15%):</span>
+        <span>$${(totalValue * 0.15).toFixed(2)}</span>
+      </div>
+      <div class="cart-total-row total">
+        <span>Total:</span>
+        <span>$${(totalValue * 1.15).toFixed(2)}</span>
+      </div>
+    </div>
+    <button class="checkout-btn">Proceed to Checkout</button>
+  </div>`;
+  
+  details.innerHTML = html;
+  
   // Position below cart icon
-  const cartDiv = document.querySelector(".cart");
   const rect = cartDiv.getBoundingClientRect();
   details.style.position = 'absolute';
   details.style.top = `${rect.bottom + window.scrollY}px`;
   details.style.left = `${rect.left + window.scrollX}px`;
   details.style.zIndex = 1000;
+  
+  // Add event listeners for remove buttons
+  details.querySelectorAll('.remove-item').forEach(button => {
+    button.addEventListener('click', (e) => {
+      const itemId = e.target.dataset.id;
+      const updatedCart = cart.filter(item => item.id !== itemId);
+      window.cart = updatedCart;
+      localStorage.setItem('cart', JSON.stringify(updatedCart));
+      renderCart();
+      showNotification(`Removed item from cart`, "success");
+      if (updatedCart.length === 0) {
+        details.remove();
+      }
+    });
+  });
+  
+  // Add checkout button handler
+  const checkoutBtn = details.querySelector('.checkout-btn');
+  if (checkoutBtn) {
+    checkoutBtn.addEventListener('click', handleCheckout);
+  }
+  
   document.body.appendChild(details);
 }
 
@@ -184,6 +272,18 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Setup event delegation for product actions
     setupEventDelegation();
+    
+    // Add cart click event listener
+    const cartElement = document.querySelector('.cart');
+    if (cartElement) {
+      cartElement.addEventListener('click', (e) => {
+        // Prevent click if clicking on the cart summary (number)
+        if (e.target.classList.contains('cart-summary')) {
+          return;
+        }
+        toggleCartDetails();
+      });
+    }
   } catch (error) {
     console.error('Error initializing components:', error);
   }
