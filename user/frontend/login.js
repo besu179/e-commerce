@@ -86,7 +86,7 @@ function setupLoginForm() {
 
     try {
       // Send login request
-      const response = await fetch("backend/login.php", {
+      const response = await fetch("http://localhost/ecommerce/user/backend/login.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -193,10 +193,12 @@ function updateLoginUI() {
 // Logout functionality
 if (logout) {
   logout.addEventListener("click", () => {
-    loggedIn = false;
-    localStorage.removeItem("currentUser");
-    updateLoginUI();
-    alert("You have been logged out");
+    if (confirm("Are you sure you want to log out?")) {
+      loggedIn = false;
+      localStorage.removeItem("currentUser");
+      updateLoginUI();
+      alert("You have been logged out");
+    }
   });
 }
 

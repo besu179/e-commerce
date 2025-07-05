@@ -50,18 +50,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         $user = $result->fetch_assoc();
-        
-        // Verify password
-        if (!password_verify($password, $user['password'])) {
+        // Plain text password check (NOT recommended for production)
+        if ($password !== $user['password']) {
             http_response_code(401);
             echo json_encode(['error' => 'Invalid email or password']);
             exit;
         }
-        
         // Successful login
         unset($user['password']); // Remove password from response
         $user['name'] = trim($user['first_name'] . ' ' . $user['last_name']);
-        
         echo json_encode([
             'success' => true,
             'user' => $user
