@@ -1,7 +1,105 @@
-document.addEventListener("DOMContentLoaded", requestCategories);
-document.addEventListener("DOMContentLoaded", requestBanners);
-document.addEventListener("DOMContentLoaded", requestFeatured);
-document.addEventListener("DOMContentLoaded", requestNewArrivals);
+document.addEventListener("DOMContentLoaded", () => {
+  requestCategories();
+  requestBanners();
+  requestFeatured();
+  requestNewArrivals();
+  setupEventDelegation();
+});
+
+// Add CSS for overlay
+
+// Create product overlay
+function createProductOverlay() {
+  const overlay = document.createElement('div');
+  overlay.className = 'product-overlay';
+  overlay.innerHTML = `
+    <div class="overlay-content">
+      <button class="close-overlay">&times;</button>
+      <div class="overlay-grid">
+        <div class="overlay-image-container">
+          <img src="" alt="Product Image" class="overlay-image">
+        </div>
+        <div class="overlay-details">
+          <h2 class="overlay-title"></h2>
+          <div class="overlay-price"></div>
+          <p class="overlay-description"></p>
+          <div class="overlay-actions">
+            <button class="add-to-cart-btn">Add to Cart</button>
+            <button class="close-btn">Continue Shopping</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+// Show product details in overlay
+function showProductDetails(product) {
+  let overlay = document.querySelector('.product-overlay');
+  if (!overlay) {
+    overlay = createProductOverlay();
+  }
+  
+  overlay.querySelector('.overlay-image').src = product.image;
+  overlay.querySelector('.overlay-title').textContent = product.name;
+  overlay.querySelector('.overlay-price').textContent = `$${product.price}`;
+  overlay.querySelector('.overlay-description').textContent = product.description;
+  
+  // Add event listeners
+  overlay.querySelector('.close-overlay').addEventListener('click', hideOverlay);
+  overlay.querySelector('.close-btn').addEventListener('click', hideOverlay);
+  overlay.querySelector('.add-to-cart-btn').addEventListener('click', () => {
+    // Add to cart functionality would go here
+    alert(`${product.name} added to cart!`);
+    hideOverlay();
+  });
+  
+  overlay.classList.add('active');
+}
+
+function hideOverlay() {
+  const overlay = document.querySelector('.product-overlay');
+  if (overlay) {
+    overlay.classList.remove('active');
+  }
+}
+
+// Setup event delegation for product actions
+function setupEventDelegation() {
+  document.body.addEventListener('click', (e) => {
+    // Handle Add to Cart clicks
+    if (e.target.closest('.add-to-cart')) {
+      const button = e.target.closest('.add-to-cart');
+      const card = button.closest('.product-card');
+      if (card) {
+        const product = {
+          name: card.dataset.name,
+          image: card.dataset.image,
+          description: card.dataset.description,
+          price: card.dataset.price
+        };
+        showProductDetails(product);
+      }
+    }
+    
+    // Handle Quick View clicks
+    if (e.target.closest('.quick-view')) {
+      const button = e.target.closest('.quick-view');
+      const card = button.closest('.product-card');
+      if (card) {
+        const product = {
+          name: card.dataset.name,
+          image: card.dataset.image,
+          description: card.dataset.description,
+          price: card.dataset.price
+        };
+        showProductDetails(product);
+      }
+    }
+  });
+}
 
 // Generic fetch helper
 function fetchJSON(url) {
@@ -12,10 +110,24 @@ function fetchJSON(url) {
     });
 }
 
+// Escape HTML special characters
+function escapeHtml(unsafe) {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // Product card generator
 function generateProductCard(product, badgeText = "Premium") {
   return `
-    <div class="product-card">
+    <div class="product-card"
+         data-name="${escapeHtml(product.name)}"
+         data-image="${escapeHtml(product.image)}"
+         data-description="${escapeHtml(product.description)}"
+         data-price="${escapeHtml(product.price)}">
       <div class="product-badge">${badgeText}</div>
       <div class="product-image-container">
         <img src="${product.image}" alt="${product.name}" class="featured-image">
@@ -72,7 +184,7 @@ function showEmptyState(icon, title, message) {
 function renderProducts(products, options) {
   const { sectionElement, badgeText, sectionHeader, emptyState } = options;
   
-  if (products && products.length > 0) {
+  if (products?.length > 0) {
     sectionElement.innerHTML = `
       <div class="section-header">
         <h2 class="section-title">${sectionHeader.title}</h2>
@@ -91,34 +203,50 @@ function renderProducts(products, options) {
   }
 }
 
+// Generic product fetcher and renderer
+function fetchAndRenderProducts(options) {
+  const { url, dataKey, sectionElement, ...renderOptions } = options;
+  
+  fetchJSON(url)
+    .then(data => {
+      renderProducts(data[dataKey], {
+        sectionElement,
+        ...renderOptions
+      });
+    })
+    .catch(err => {
+      showErrorState(sectionElement, err, () => fetchAndRenderProducts(options));
+    });
+}
+
 function requestCategories() {
   fetchJSON("http://localhost/ecommerce/user/backend/menu.php")
     .then(data => {
       const navContainer = document.querySelector('.navigation');
-      if (data.categories?.length > 0) {
-        let navHTML = '<ul class="menu">';
-        data.categories.forEach(cat => {
-          navHTML += `
+      if (!data.categories?.length) {
+        navContainer.innerHTML = '<div class="error">No categories available</div>';
+        return;
+      }
+      
+      navContainer.innerHTML = `
+        <ul class="menu">
+          ${data.categories.map(cat => `
             <li class="menu-item">
               <a href="#items-section" class="nav-link" data-category="${cat.toLowerCase()}">
                 ${cat}
               </a>
-            </li>`;
+            </li>`
+          ).join('')}
+        </ul>
+      `;
+      
+      navContainer.querySelectorAll('.nav-link[data-category]').forEach(link => {
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
+          requestCategoryName(this.dataset.category);
+          document.getElementById('items-section')?.scrollIntoView({ behavior: 'smooth' });
         });
-        navHTML += '</ul>';
-        navContainer.innerHTML = navHTML;
-        
-        document.querySelectorAll('.nav-link[data-category]').forEach(link => {
-          link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const category = this.getAttribute('data-category');
-            requestCategoryName(category);
-            document.getElementById('items-section')?.scrollIntoView({ behavior: 'smooth' });
-          });
-        });
-      } else {
-        navContainer.innerHTML = '<div class="error">No categories available</div>';
-      }
+      });
     })
     .catch(err => {
       console.error("Fetch failed:", err);
@@ -127,76 +255,70 @@ function requestCategories() {
     });
 }
 
-function requestCategoryName(category) {
-  const endpoints = {
-    electronics: {
-      url: "http://localhost/ecommerce/user/backend/electronics.php",
-      key: 'electronics',
-      emptyState: {
-        icon: 'fas fa-bolt',
-        title: 'No Electronics Available',
-        message: 'Check back soon for new electronics.'
-      }
-    },
-    food: {
-      url: "http://localhost/ecommerce/user/backend/food.php",
-      key: 'food',
-      emptyState: {
-        icon: 'fas fa-apple-alt',
-        title: 'No Food Products Available',
-        message: 'Check back soon for tasty additions.'
-      }
-    },
-    men: {
-      url: "http://localhost/ecommerce/user/backend/men.php",
-      key: 'men',
-      emptyState: {
-        icon: 'fas fa-male',
-        title: 'No Men\'s Products Available',
-        message: 'Check back soon for more men\'s items.'
-      }
-    },
-    women: {
-      url: "http://localhost/ecommerce/user/backend/women.php",
-      key: 'women',
-      emptyState: {
-        icon: 'fas fa-female',
-        title: 'No Women\'s Products Available',
-        message: 'Check back soon for more women\'s items.'
-      }
-    },
-    children: {
-      url: "http://localhost/ecommerce/user/backend/children.php",
-      key: 'children',
-      emptyState: {
-        icon: 'fas fa-child',
-        title: 'No Children\'s Products Available',
-        message: 'Check back soon for more children\'s items.'
-      }
+// Category configuration
+const CATEGORY_CONFIG = {
+  electronics: {
+    url: "http://localhost/ecommerce/user/backend/electronics.php",
+    dataKey: 'electronics',
+    emptyState: {
+      icon: 'fas fa-bolt',
+      title: 'No Electronics Available',
+      message: 'Check back soon for new electronics.'
     }
-  };
+  },
+  food: {
+    url: "http://localhost/ecommerce/user/backend/food.php",
+    dataKey: 'food',
+    emptyState: {
+      icon: 'fas fa-apple-alt',
+      title: 'No Food Products Available',
+      message: 'Check back soon for tasty additions.'
+    }
+  },
+  men: {
+    url: "http://localhost/ecommerce/user/backend/men.php",
+    dataKey: 'men',
+    emptyState: {
+      icon: 'fas fa-male',
+      title: 'No Men\'s Products Available',
+      message: 'Check back soon for more men\'s items.'
+    }
+  },
+  women: {
+    url: "http://localhost/ecommerce/user/backend/women.php",
+    dataKey: 'women',
+    emptyState: {
+      icon: 'fas fa-female',
+      title: 'No Women\'s Products Available',
+      message: 'Check back soon for more women\'s items.'
+    }
+  },
+  children: {
+    url: "http://localhost/ecommerce/user/backend/children.php",
+    dataKey: 'children',
+    emptyState: {
+      icon: 'fas fa-child',
+      title: 'No Children\'s Products Available',
+      message: 'Check back soon for more children\'s items.'
+    }
+  }
+};
 
-  const config = endpoints[category];
+function requestCategoryName(category) {
+  const config = CATEGORY_CONFIG[category];
   if (!config) return;
 
-  fetchJSON(config.url)
-    .then(data => {
-      const featuredSection = document.getElementById('items-section');
-      renderProducts(data[config.key], {
-        sectionElement: featuredSection,
-        badgeText: category.charAt(0).toUpperCase() + category.slice(1),
-        sectionHeader: {
-          title: "Products Collection",
-          subtitle: "Handpicked items for the discerning shopper"
-        },
-        emptyState: config.emptyState
-      });
-    })
-    .catch(err => {
-      console.error("Fetch failed:", err);
-      const featuredSection = document.getElementById('items-section');
-      showErrorState(featuredSection, err, () => requestCategoryName(category));
-    });
+  fetchAndRenderProducts({
+    url: config.url,
+    dataKey: config.dataKey,
+    sectionElement: document.getElementById('items-section'),
+    badgeText: category.charAt(0).toUpperCase() + category.slice(1),
+    sectionHeader: {
+      title: "Products Collection",
+      subtitle: "Handpicked items for the discerning shopper"
+    },
+    emptyState: config.emptyState
+  });
 }
 
 function requestBanners() {
@@ -205,34 +327,31 @@ function requestBanners() {
       const swiperWrapper = document.querySelector('.swiper-wrapper');
       const bannerSection = document.querySelector('.banner');
       
-      if (data.banners?.length > 0) {
-        swiperWrapper.innerHTML = '';
-        data.banners.forEach((banner) => {
-          const slide = document.createElement('div');
-          slide.className = 'swiper-slide';
-          slide.innerHTML = `
-            <div class="slide-content">
-              <h2>${banner.name}</h2>
-              <p>${banner.description}</p>
-            </div>
-            <img src="${banner.image}" alt="${banner.name}" class="banner-image">
-          `;
-          swiperWrapper.appendChild(slide);
-        });
-
-        new Swiper('.swiper', {
-          direction: 'horizontal',
-          loop: true,
-          autoplay: { delay: 5000, disableOnInteraction: false },
-          pagination: { el: '.swiper-pagination', clickable: true },
-          navigation: {
-            nextEl: '.swiper-button-next',
-            prevEl: '.swiper-button-prev',
-          },
-        });
-      } else {
+      if (!data.banners?.length) {
         bannerSection.innerHTML = '<div class="error">No banners available</div>';
+        return;
       }
+
+      swiperWrapper.innerHTML = data.banners.map(banner => `
+        <div class="swiper-slide">
+          <div class="slide-content">
+            <h2>${banner.name}</h2>
+            <p>${banner.description}</p>
+          </div>
+          <img src="${banner.image}" alt="${banner.name}" class="banner-image">
+        </div>`
+      ).join('');
+
+      new Swiper('.swiper', {
+        direction: 'horizontal',
+        loop: true,
+        autoplay: { delay: 5000, disableOnInteraction: false },
+        pagination: { el: '.swiper-pagination', clickable: true },
+        navigation: {
+          nextEl: '.swiper-button-next',
+          prevEl: '.swiper-button-prev',
+        },
+      });
     })
     .catch(err => {
       console.error("Fetch failed:", err);
@@ -242,50 +361,37 @@ function requestBanners() {
 }
 
 function requestFeatured() {
-  fetchJSON("http://localhost/ecommerce/user/backend/featured.php")
-    .then(data => {
-      const featuredSection = document.getElementById('items-section');
-      renderProducts(data.featured, {
-        sectionElement: featuredSection,
-        badgeText: "Premium",
-        sectionHeader: {
-          title: "Premium Collection",
-          subtitle: "Handpicked luxury items for the discerning shopper"
-        },
-        emptyState: {
-          icon: 'fas fa-gem',
-          title: 'No Premium Products Available',
-          message: 'Check back soon for our luxury collection'
-        }
-      });
-    })
-    .catch(err => {
-      console.error("Fetch failed:", err);
-      const featuredSection = document.getElementById('items-section');
-      showErrorState(featuredSection, err, requestFeatured);
-    });
+  fetchAndRenderProducts({
+    url: "http://localhost/ecommerce/user/backend/featured.php",
+    dataKey: 'featured',
+    sectionElement: document.getElementById('items-section'),
+    badgeText: "Premium",
+    sectionHeader: {
+      title: "Premium Collection",
+      subtitle: "Handpicked luxury items for the discerning shopper"
+    },
+    emptyState: {
+      icon: 'fas fa-gem',
+      title: 'No Premium Products Available',
+      message: 'Check back soon for our luxury collection'
+    }
+  });
 }
+
 function requestNewArrivals() {
-  fetchJSON("http://localhost/ecommerce/user/backend/random.php")
-    .then(data => {
-      const section = document.querySelector('.new-arrivals');
-      renderProducts(data.random, {
-        sectionElement: section,
-        badgeText: "New",
-        sectionHeader: {
-          title: "New Arrivals",
-          subtitle: "Discover the latest additions to our store"
-        },
-        emptyState: {
-          icon: 'fas fa-box-open',
-          title: 'No New Arrivals',
-          message: 'Check back soon for new products!'
-        }
-      });
-    })
-    .catch(err => {
-      console.error("Fetch failed:", err);
-      const section = document.querySelector('.new-arrivals');
-      showErrorState(section, err, requestNewArrivals);
-    });
+  fetchAndRenderProducts({
+    url: "http://localhost/ecommerce/user/backend/random.php",
+    dataKey: 'random',
+    sectionElement: document.querySelector('.new-arrivals'),
+    badgeText: "New",
+    sectionHeader: {
+      title: "New Arrivals",
+      subtitle: "Discover the latest additions to our store"
+    },
+    emptyState: {
+      icon: 'fas fa-box-open',
+      title: 'No New Arrivals',
+      message: 'Check back soon for new products!'
+    }
+  });
 }
