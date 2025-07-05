@@ -53,8 +53,9 @@ function showProductDetails(product) {
 
   // Set stock information
   const stockElement = overlay.querySelector(".overlay-stock");
-  if (product.stock > 0) {
-    stockElement.textContent = `${product.stock} left in stock`;
+  const stock = Number(product.stock);
+  if (!isNaN(stock) && stock > 0) {
+    stockElement.textContent = `${stock} left in stock`;
     stockElement.className = "overlay-stock in-stock";
   } else {
     stockElement.textContent = "Out of stock";
@@ -70,7 +71,9 @@ function showProductDetails(product) {
     .addEventListener("click", hideOverlay);
   overlay.querySelector(".close-btn").addEventListener("click", hideOverlay);
   overlay.querySelector(".add-to-cart-btn").addEventListener("click", () => {
-    if (product.stock > 0) {
+    const stock = Number(product.stock);
+    console.log(stock);
+    if (!isNaN(stock) && stock > 0) {
       showNotification(`${product.name} added to cart!`, "success");
       hideOverlay();
     } else {
@@ -101,8 +104,12 @@ function setupEventDelegation() {
           image: card.dataset.image,
           description: card.dataset.description,
           price: card.dataset.price,
-          stock: parseInt(card.dataset.stock),
+          stock: card.dataset.stock,
         };
+        console.log(card.dataset.stock);
+        console.log(product);
+        console.log(product.name);
+        console.log(product.price);
         showProductDetails(product);
       }
     }
@@ -142,6 +149,7 @@ function escapeHtml(unsafe) {
     .replace(/'/g, "&#039;");
 }
 
+// Product card generator
 // Product card generator
 function generateProductCard(product, badgeText = "Premium") {
   return `

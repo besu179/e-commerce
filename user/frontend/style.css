@@ -984,129 +984,12 @@ footer {
   cursor: not-allowed;
   opacity: 0.6;
 }
-.product-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.85);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-    
-    .product-overlay.active {
-      opacity: 1;
-      pointer-events: all;
-    }
-    
-    .overlay-content {
-      background: white;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 800px;
-      max-height: 90vh;
-      overflow-y: auto;
-      position: relative;
-      padding: 30px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    }
-    
-    .close-overlay {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      color: #333;
-    }
-    
-    .overlay-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 30px;
-      align-items: center;
-    }
-    
-    .overlay-image {
-      width: 100%;
-      border-radius: 8px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-    
-    .overlay-details h2 {
-      margin-top: 0;
-      font-size: 28px;
-    }
-    
-    .overlay-price {
-      font-size: 24px;
-      font-weight: bold;
-      color: #e53935;
-      margin: 15px 0;
-    }
-    
-    .overlay-description {
-      line-height: 1.6;
-      margin-bottom: 20px;
-      color: #555;
-    }
-    .overlay-actions {
-      display: flex;
-      gap: 15px;
-      margin-top: 25px;
-    }
-    
-    .overlay-actions button {
-      flex: 1;
-      padding: 12px;
-      border: none;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    
-    .add-to-cart-btn {
-      background: #4CAF50;
-      color: white;
-    }
-    
-    .add-to-cart-btn:hover {
-      background: #388E3C;
-    }
-    
-    .close-btn {
-      background: #f5f5f5;
-      color: #333;
-    }
-    
-    .close-btn:hover {
-      background: #e0e0e0;
-    }
 
-
-    
-    @media (max-width: 768px) {
-      .overlay-grid {
-        grid-template-columns: 1fr;
-      }
-      
-      .overlay-image-container {
-        text-align: center;
-      }
-    }
-
-
-/* Login Overlay Styles */
-.login-overlay {
+/* ===== Overlay Base Styles (Unified for all overlays) ===== */
+.overlay,
+.product-overlay,
+.login-overlay,
+.register-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -1122,22 +1005,43 @@ footer {
   transition: opacity 0.3s ease;
 }
 
-.login-overlay.active {
+.overlay.active,
+.product-overlay.active,
+.login-overlay.active,
+.register-overlay.active {
   opacity: 1;
   pointer-events: all;
 }
 
-.login-overlay .overlay-content {
+/* ===== Overlay Content Box (Shared) ===== */
+.overlay-content {
   background: white;
   border-radius: 12px;
   width: 90%;
-  max-width: 450px;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
   position: relative;
-  padding: 40px;
+  padding: 30px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.3);
 }
 
-.login-overlay .close-overlay {
+/* Overlay content size for login/register overlays */
+.login-overlay .overlay-content,
+.register-overlay .overlay-content {
+  max-width: 450px;
+  padding: 40px;
+}
+
+@media (max-width: 480px) {
+  .login-overlay .overlay-content,
+  .register-overlay .overlay-content {
+    padding: 30px 20px;
+  }
+}
+
+/* Overlay close button (shared) */
+.close-overlay {
   position: absolute;
   top: 15px;
   right: 15px;
@@ -1147,6 +1051,84 @@ footer {
   cursor: pointer;
   color: #333;
 }
+
+/* Overlay grid for product overlays */
+.overlay-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .overlay-grid {
+    grid-template-columns: 1fr;
+  }
+  .overlay-image-container {
+    text-align: center;
+  }
+}
+
+.overlay-image {
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.overlay-details h2 {
+  margin-top: 0;
+  font-size: 28px;
+}
+
+.overlay-price {
+  font-size: 24px;
+  font-weight: bold;
+  color: #e53935;
+  margin: 15px 0;
+}
+
+.overlay-description {
+  line-height: 1.6;
+  margin-bottom: 20px;
+  color: #555;
+}
+
+.overlay-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+.overlay-actions button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-to-cart-btn {
+  background: #4CAF50;
+  color: white;
+}
+
+.add-to-cart-btn:hover {
+  background: #388E3C;
+}
+
+.close-btn {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.close-btn:hover {
+  background: #e0e0e0;
+}
+
+
+/* Login Overlay Styles */
 
 .login-overlay h2 {
   text-align: center;
@@ -1256,47 +1238,8 @@ footer {
 }    
 
 
-.register-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-}
 
-.register-overlay.active {
-  opacity: 1;
-  pointer-events: all;
-}
 
-.overlay-content {
-  background: white;
-  border-radius: 10px;
-  width: 90%;
-  max-width: 500px;
-  padding: 30px;
-  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
-  position: relative;
-}
-
-.close-overlay {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #333;
-}
 
 .register-form h2 {
   text-align: center;
