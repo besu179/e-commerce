@@ -26,7 +26,18 @@ $tables = [
         description VARCHAR(255) NOT NULL,
         image VARCHAR(255) NOT NULL,
         status TINYINT NOT NULL DEFAULT 0
-        )"
+        )",
+
+        "CREATE TABLE IF NOT EXISTS users (
+            id INT(11) NOT NULL AUTO_INCREMENT,
+            password VARCHAR(255) NOT NULL,
+            email VARCHAR(255) NOT NULL,
+            first_name VARCHAR(50) DEFAULT NULL,
+            last_name VARCHAR(50) DEFAULT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY email (email)
+            )"
 ];
 
 foreach ($tables as $sql) {

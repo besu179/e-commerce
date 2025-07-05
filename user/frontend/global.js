@@ -4,6 +4,12 @@ document.addEventListener("DOMContentLoaded", () => {
   requestFeatured();
   requestNewArrivals();
   setupEventDelegation();
+
+  const currentUser = localStorage.getItem("currentUser");
+  if (currentUser) {
+    loggedIn = true;
+    updateLoginUI();
+  }
 });
 
 // Create product overlay
@@ -36,7 +42,6 @@ function createProductOverlay() {
 
 // Show product details in overlay
 function showProductDetails(product) {
-  console.log(product.stock);
   let overlay = document.querySelector(".product-overlay");
   if (!overlay) {
     overlay = createProductOverlay();
@@ -172,7 +177,7 @@ function generateProductCard(product, badgeText = "Premium") {
             <span class="rating-count">(42)</span>
           </div>
         </div>
-        <button class="add-to-cart">Add to Cart</button>
+        <button class="add-to-cart">Show Detail</button>
       </div>
     </div>
   `;
