@@ -1,5 +1,55 @@
 
 // --- Cart logic ---
+// Initialize cart array
+window.cart = JSON.parse(localStorage.getItem("cart") || "[]");
+
+function handleCheckout() {
+  const cart = window.cart;
+  if (cart.length === 0) {
+    showNotification("Your cart is empty", "error");
+    return;
+  }
+
+  // Get user info
+  const user = JSON.parse(localStorage.getItem("currentUser"));
+  if (!user) {
+    showNotification("Please login to proceed with checkout", "error");
+    return;
+  }
+
+  // Prepare purchase data
+  const purchaseData = {
+    userId: user.id,
+    items: cart,
+    total: cart.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0)
+  };
+
+  // Send purchase request to backend
+  fetch("http://localhost/ecommerce/user/backend/purchase.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(purchaseData)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Clear cart after successful purchase
+      localStorage.removeItem("cart");
+      window.cart = [];
+      renderCart();
+      showNotification("Purchase successful! Your order has been placed.", "success");
+    } else {
+      showNotification(`Purchase failed: ${data.message || "Unknown error"}`, "error");
+    }
+  })
+  .catch(error => {
+    console.error("Error during purchase:", error);
+    showNotification("An error occurred during purchase. Please try again later.", "error");
+  });
+}
+
 function addToCart(item) {
   const idx = window.cart.findIndex((p) => p.id === item.id);
   if (idx > -1) {
@@ -9,6 +59,7 @@ function addToCart(item) {
   }
   localStorage.setItem("cart", JSON.stringify(window.cart));
   renderCart();
+  showNotification(`Added ${item.quantity} ${item.name} to cart`, "success");
 }
 
 function renderCart() {
@@ -21,14 +72,68 @@ function renderCart() {
     cartDiv.innerHTML = '';
     cartDiv.appendChild(summary);
   }
-  const cart = window.cart || [];
+  
+  // Get cart from localStorage
+  const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+  
   if (cart.length === 0) {
     summary.textContent = 'Cart (0)';
     removeCartDetails();
     return;
   }
-  const total = cart.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
-  summary.textContent = `Cart (${cart.reduce((sum, item) => sum + Number(item.quantity), 0)}) - $${total.toFixed(2)}`;
+
+  // Calculate total value
+  const totalQuantity = cart.reduce((sum, item) => sum + Number(item.quantity), 0);
+  const totalValue = cart.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+  
+  // Update summary
+  summary.textContent = `Cart (${totalQuantity}) - $${totalValue.toFixed(2)}`;
+  
+  // Update cart details if visible
+  const cartDetails = document.querySelector(".cart-details");
+  if (cartDetails) {
+    let html = '<ul class="cart-list">';
+    cart.forEach(item => {
+      html += `
+        <li>
+          <img src="${item.image}" alt="${item.name}" class="cart-item-image">
+          <div class="cart-item-details">
+            <span class="cart-item-name">${item.name}</span>
+            <span class="cart-item-price">$${(Number(item.price) * Number(item.quantity)).toFixed(2)}</span>
+            <span class="cart-item-quantity">x${item.quantity}</span>
+          </div>
+          <button class="remove-from-cart" data-id="${item.id}">&times;</button>
+        </li>
+      `;
+    });
+    html += '</ul>';
+    
+    // Add total section
+    html += `
+      <div class="cart-total">
+        <span>Total: $${totalValue.toFixed(2)}</span>
+        <button class="checkout-btn">Proceed to Checkout</button>
+      </div>
+    `;
+    
+    cartDetails.innerHTML = html;
+    
+    // Add event listeners for remove buttons
+    cartDetails.querySelectorAll('.remove-from-cart').forEach(button => {
+      button.addEventListener('click', (e) => {
+        const itemId = e.target.dataset.id;
+        const updatedCart = cart.filter(item => item.id !== itemId);
+        localStorage.setItem('cart', JSON.stringify(updatedCart));
+        renderCart();
+      });
+    });
+    
+    // Add checkout button handler
+    const checkoutBtn = cartDetails.querySelector('.checkout-btn');
+    if (checkoutBtn) {
+      checkoutBtn.addEventListener('click', handleCheckout);
+    }
+  }
 }
 
 function toggleCartDetails() {
@@ -171,6 +276,23 @@ async function showProductDetails(product) {
     if (!isNaN(stock) && stock > 0 && quantity > 0) {
       // Check login status
       let user = localStorage.getItem("currentUser");
+      if (!user) {
+        showNotification("Please login to add items to cart", "error");
+        return;
+      }
+
+      // Add item to cart
+      addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: quantity,
+        image: product.image,
+        stock: stock
+      });
+      
+      // Close overlay
+      hideOverlay();
       if (!user) {
         showNotification("Please log in to purchase.", "error");
         return;
