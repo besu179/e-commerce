@@ -37,27 +37,188 @@ function createLoginOverlay() {
   return overlay;
 }
 
+// Create registration overlay
+function createRegisterOverlay() {
+  const overlay = document.createElement("div");
+  overlay.className = "register-overlay";
+  overlay.innerHTML = `
+    <div class="overlay-content">
+      <button class="close-overlay">&times;</button>
+      <div class="register-form">
+        <h2>Create Your Account</h2>
+        <form id="registerForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="regFirstName">First Name</label>
+              <input type="text" id="regFirstName" name="first_name" required>
+            </div>
+            <div class="form-group">
+              <label for="regLastName">Last Name</label>
+              <input type="text" id="regLastName" name="last_name" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="regEmail">Email</label>
+            <input type="email" id="regEmail" name="email" required>
+          </div>
+          <div class="form-group">
+            <label for="regPassword">Password</label>
+            <div class="password-container">
+              <input type="password" id="regPassword" name="password" required>
+              <i class="fas fa-eye password-toggle"></i>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="regConfirmPassword">Confirm Password</label>
+            <input type="password" id="regConfirmPassword" name="confirm_password" required>
+          </div>
+          <button type="submit" class="register-btn">Create Account</button>
+        </form>
+        <div class="login-link">
+          Already have an account? <a href="#" class="switch-to-login">Sign in</a>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
 // Show login overlay
 function showLoginOverlay() {
+  hideRegisterOverlay();
   let overlay = document.querySelector(".login-overlay");
   if (!overlay) {
     overlay = createLoginOverlay();
   }
-
   overlay.classList.add("active");
+  overlay.querySelector(".close-overlay").addEventListener("click", hideLoginOverlay);
+  overlay.querySelector(".switch-to-register").addEventListener("click", (e) => {
+    e.preventDefault();
+    hideLoginOverlay();
+    showRegisterOverlay();
+  });
+  setupLoginForm();
+}
 
-  // Add event listeners
-  overlay
-    .querySelector(".close-overlay")
-    .addEventListener("click", hideLoginOverlay);
-  overlay
-    .querySelector(".switch-to-register")
-    .addEventListener("click", (e) => {
-      e.preventDefault();
-      hideLoginOverlay();
-      // In a real app, you would show registration form here
-      alert("Registration form would appear here");
+// Show registration overlay
+function showRegisterOverlay() {
+  hideLoginOverlay();
+  let overlay = document.querySelector(".register-overlay");
+  if (!overlay) {
+    overlay = createRegisterOverlay();
+  }
+  overlay.classList.add("active");
+  overlay.querySelector(".close-overlay").addEventListener("click", hideRegisterOverlay);
+  overlay.querySelector(".switch-to-login").addEventListener("click", (e) => {
+    e.preventDefault();
+    hideRegisterOverlay();
+    showLoginOverlay();
+  });
+  setupRegisterForm();
+  setupPasswordToggle();
+}
+
+// Hide registration overlay
+function hideRegisterOverlay() {
+  const overlay = document.querySelector(".register-overlay");
+  if (overlay) {
+    overlay.classList.remove("active");
+  }
+}
+
+// Password toggle functionality
+function setupPasswordToggle() {
+  const passwordToggle = document.querySelector('.password-toggle');
+  if (passwordToggle) {
+    passwordToggle.addEventListener('click', function() {
+      const passwordInput = document.getElementById('regPassword');
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      this.classList.toggle('fa-eye');
+      this.classList.toggle('fa-eye-slash');
     });
+  }
+}
+
+// Registration form handler
+function setupRegisterForm() {
+  const registerForm = document.getElementById('registerForm');
+  if (!registerForm) return;
+
+  registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Get form values
+    const firstName = document.getElementById('regFirstName').value;
+    const lastName = document.getElementById('regLastName').value;
+    const email = document.getElementById('regEmail').value;
+    const password = document.getElementById('regPassword').value;
+    const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+    // Basic validation
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+      showNotification('Please fill in all fields', 'error');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showNotification('Passwords do not match', 'error');
+      return;
+    }
+
+    if (password.length < 8) {
+      showNotification('Password must be at least 8 characters', 'error');
+      return;
+    }
+
+    // Show loading state
+    const registerBtn = registerForm.querySelector('.register-btn');
+    const originalBtnText = registerBtn.textContent;
+    registerBtn.textContent = 'Creating account...';
+    registerBtn.disabled = true;
+
+    try {
+      // Send registration request
+      const response = await fetch('http://localhost/ecommerce/user/backend/register.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          first_name: firstName, 
+          last_name: lastName, 
+          email, 
+          password 
+        })
+      });
+
+      // Handle response
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+
+      if (data.success) {
+        // Registration successful - automatically log in
+        const user = data.user;
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        loggedIn = true;
+        updateLoginUI();
+        showNotification('Account created successfully! You are now logged in.', 'success');
+        hideRegisterOverlay();
+      } else {
+        throw new Error(data.error || 'Registration failed');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      showNotification(`Registration failed: ${error.message}`, 'error');
+    } finally {
+      registerBtn.textContent = originalBtnText;
+      registerBtn.disabled = false;
+    }
+  });
 }
 
 // Login form handler
@@ -150,13 +311,12 @@ function hideLoginOverlay() {
   }
 }
 
-// Event listeners for login button
+// Event listeners for login/register button
 if (login) {
-  login.addEventListener("click", () => {
-    showLoginOverlay();
-    // Setup form after overlay is shown
-    setTimeout(setupLoginForm, 50);
-  });
+  login.addEventListener("click", showLoginOverlay);
+}
+if (register) {
+  register.addEventListener("click", showRegisterOverlay);
 }
 
 // Utility function to show/hide elements
@@ -213,3 +373,12 @@ document.addEventListener("DOMContentLoaded", () => {
     updateLoginUI();
   }
 });
+
+
+if (register) {
+  register.addEventListener("click", () => {
+    createRegisterOverlay();
+    // Setup form after overlay is shown
+    setTimeout(setupLoginForm, 50);
+  });
+}

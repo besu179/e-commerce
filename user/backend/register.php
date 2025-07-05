@@ -3,7 +3,7 @@ require_once 'db.php';
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header('Content-Type: application/json');
 
 // Handle preflight requests
@@ -39,9 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // Check password length
-    if (strlen($password) < 8) {
+    if (strlen($password) < 6) {
         http_response_code(400);
-        echo json_encode(['error' => 'Password must be at least 8 characters']);
+        echo json_encode(['error' => 'Password must be at least 6 characters']);
         exit;
     }
     
@@ -58,15 +58,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         
-        // Hash password
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-        
         // Create new user
         $stmt = $conn->prepare("
             INSERT INTO users (first_name, last_name, email, password)
             VALUES (?, ?, ?, ?)
         ");
-        $stmt->bind_param('ssss', $firstName, $lastName, $email, $hashedPassword);
+        $stmt->bind_param('ssss', $firstName, $lastName, $email, $password);
         $stmt->execute();
         
         if ($stmt->affected_rows > 0) {
